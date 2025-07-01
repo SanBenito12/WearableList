@@ -44,10 +44,10 @@ import androidx.wear.compose.material.Vignette
 import androidx.wear.compose.material.VignettePosition
 import androidx.wear.compose.material.rememberSwipeToDismissBoxState
 import androidx.wear.tooling.preview.devices.WearDevices
-import com.example.wearablelist.data.SportsDataProvider
+import com.example.wearablelist.presentation.data.SportsDataProvider
 import com.example.wearablelist.presentation.theme.WearableListTheme
 
-// Data class para los elementos de la lista
+// Data classes y enums
 data class ListItem(
     val id: Int,
     val title: String,
@@ -62,18 +62,18 @@ enum class ItemType {
     ACTION
 }
 
-// Rutas de navegación
+// Rutas Para usar la navegación wear
 object Routes {
     const val HOME = "home"
     const val DETAIL = "detail/{itemId}/{itemTitle}"
-    const val SETTINGS = "settings"
-    const val ABOUT = "about"
     const val CHAMPIONS = "champions"
     const val LALIGA = "laliga"
     const val PREMIER = "premier"
     const val NBA = "nba"
     const val MLB = "mlb"
     const val NFL = "nfl"
+    const val SETTINGS = "settings"
+    const val ABOUT = "about"
     const val FAVORITES = "favorites"
     const val SPORTS_NEWS = "sports_news"
 }
@@ -102,8 +102,43 @@ fun WearApp() {
             composable(Routes.HOME) {
                 HomeScreen(navController = navController)
             }
-
-            composable(Routes.DETAIL + "/{itemId}/{itemTitle}") { backStackEntry ->
+            composable(Routes.CHAMPIONS) {
+                TeamsListScreen(
+                    navController = navController,
+                    teams = SportsDataProvider.getChampionsLeagueTeams()
+                )
+            }
+            composable(Routes.LALIGA) {
+                TeamsListScreen(
+                    navController = navController,
+                    teams = SportsDataProvider.getLaLigaTeams()
+                )
+            }
+            composable(Routes.PREMIER) {
+                TeamsListScreen(
+                    navController = navController,
+                    teams = SportsDataProvider.getPremierLeagueTeams()
+                )
+            }
+            composable(Routes.NBA) {
+                TeamsListScreen(
+                    navController = navController,
+                    teams = SportsDataProvider.getNBATeams()
+                )
+            }
+            composable(Routes.MLB) {
+                TeamsListScreen(
+                    navController = navController,
+                    teams = SportsDataProvider.getMLBTeams()
+                )
+            }
+            composable(Routes.NFL) {
+                TeamsListScreen(
+                    navController = navController,
+                    teams = SportsDataProvider.getNFLTeams()
+                )
+            }
+            composable("detail/{itemId}/{itemTitle}") { backStackEntry ->
                 val itemId = backStackEntry.arguments?.getString("itemId") ?: "0"
                 val itemTitle = backStackEntry.arguments?.getString("itemTitle") ?: "Item"
                 TeamDetailScreen(
@@ -112,45 +147,17 @@ fun WearApp() {
                     itemTitle = itemTitle
                 )
             }
-
-            composable(Routes.CHAMPIONS) {
-                ChampionsLeagueScreen(navController = navController)
-            }
-
-            composable(Routes.LALIGA) {
-                LaLigaScreen(navController = navController)
-            }
-
-            composable(Routes.PREMIER) {
-                PremierLeagueScreen(navController = navController)
-            }
-
-            composable(Routes.NBA) {
-                NBAScreen(navController = navController)
-            }
-
-            composable(Routes.MLB) {
-                MLBScreen(navController = navController)
-            }
-
-            composable(Routes.NFL) {
-                NFLScreen(navController = navController)
-            }
-
             composable(Routes.SETTINGS) {
-                SettingsScreen(navController = navController)
+                SimpleScreen(navController, "⚙️ Configuración", "Notificaciones deportivas\nEquipos favoritos")
             }
-
             composable(Routes.ABOUT) {
-                AboutScreen(navController = navController)
+                SimpleScreen(navController, "🏆 EpicSports", "v1.0 para Wear OS\nTu app deportivo definitivo")
             }
-
             composable(Routes.FAVORITES) {
-                FavoritesScreen(navController = navController)
+                SimpleScreen(navController, "⭐ Favoritos", "Prueba")
             }
-
             composable(Routes.SPORTS_NEWS) {
-                SportsNewsScreen(navController = navController)
+                NewsScreen(navController = navController)
             }
         }
     }
@@ -178,266 +185,49 @@ fun HomeScreen(navController: NavHostController) {
             verticalArrangement = Arrangement.spacedBy(4.dp),
             state = listState
         ) {
-            itemsIndexed(sportsMenu) { index, item ->
-                when (item.type) {
-                    ItemType.HEADER -> {
-                        HeaderItem(item = item)
+            itemsIndexed(sportsMenu) { _, item ->
+                ListItemComponent(
+                    item = item,
+                    onClick = {
+                        if (item.route.isNotEmpty()) {
+                            navController.navigate(item.route)
+                        }
                     }
-                    ItemType.ACTION -> {
-                        ActionItem(
-                            item = item,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalWearFoundationApi::class)
+@Composable
+fun TeamsListScreen(navController: NavHostController, teams: List<ListItem>) {
+    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
+    val listState = rememberScalingLazyListState()
+
+    SwipeToDismissBox(
+        state = swipeToDismissBoxState,
+        onDismissed = { navController.popBackStack() }
+    ) { isBackground ->
+        if (!isBackground) {
+            Scaffold(
+                timeText = { TimeText() },
+                positionIndicator = { PositionIndicator(scalingLazyListState = listState) }
+            ) {
+                ScalingLazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    state = listState
+                ) {
+                    itemsIndexed(teams) { _, team ->
+                        ListItemComponent(
+                            item = team,
                             onClick = {
-                                navController.navigate(item.route)
+                                if (team.route.isNotEmpty()) {
+                                    navController.navigate(team.route)
+                                }
                             }
                         )
-                    }
-                    ItemType.NORMAL -> {
-                        NormalItem(
-                            item = item,
-                            onClick = {
-                                navController.navigate(item.route)
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Composable
-fun ChampionsLeagueScreen(navController: NavHostController) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-    val listState = rememberScalingLazyListState()
-    val teams = remember { SportsDataProvider.getChampionsLeagueTeams() }
-
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
-        onDismissed = { navController.popBackStack() }
-    ) { isBackground ->
-        if (!isBackground) {
-            Scaffold(
-                timeText = { TimeText() },
-                positionIndicator = { PositionIndicator(scalingLazyListState = listState) }
-            ) {
-                ScalingLazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    state = listState
-                ) {
-                    itemsIndexed(teams) { index, team ->
-                        when (team.type) {
-                            ItemType.HEADER -> HeaderItem(item = team)
-                            ItemType.ACTION -> ActionItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                            ItemType.NORMAL -> NormalItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Composable
-fun LaLigaScreen(navController: NavHostController) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-    val listState = rememberScalingLazyListState()
-    val teams = remember { SportsDataProvider.getLaLigaTeams() }
-
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
-        onDismissed = { navController.popBackStack() }
-    ) { isBackground ->
-        if (!isBackground) {
-            Scaffold(
-                timeText = { TimeText() },
-                positionIndicator = { PositionIndicator(scalingLazyListState = listState) }
-            ) {
-                ScalingLazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    state = listState
-                ) {
-                    itemsIndexed(teams) { index, team ->
-                        when (team.type) {
-                            ItemType.HEADER -> HeaderItem(item = team)
-                            ItemType.ACTION -> ActionItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                            ItemType.NORMAL -> NormalItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Composable
-fun PremierLeagueScreen(navController: NavHostController) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-    val listState = rememberScalingLazyListState()
-    val teams = remember { SportsDataProvider.getPremierLeagueTeams() }
-
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
-        onDismissed = { navController.popBackStack() }
-    ) { isBackground ->
-        if (!isBackground) {
-            Scaffold(
-                timeText = { TimeText() },
-                positionIndicator = { PositionIndicator(scalingLazyListState = listState) }
-            ) {
-                ScalingLazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    state = listState
-                ) {
-                    itemsIndexed(teams) { index, team ->
-                        when (team.type) {
-                            ItemType.HEADER -> HeaderItem(item = team)
-                            ItemType.ACTION -> ActionItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                            ItemType.NORMAL -> NormalItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Composable
-fun NBAScreen(navController: NavHostController) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-    val listState = rememberScalingLazyListState()
-    val teams = remember { SportsDataProvider.getNBATeams() }
-
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
-        onDismissed = { navController.popBackStack() }
-    ) { isBackground ->
-        if (!isBackground) {
-            Scaffold(
-                timeText = { TimeText() },
-                positionIndicator = { PositionIndicator(scalingLazyListState = listState) }
-            ) {
-                ScalingLazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    state = listState
-                ) {
-                    itemsIndexed(teams) { index, team ->
-                        when (team.type) {
-                            ItemType.HEADER -> HeaderItem(item = team)
-                            ItemType.ACTION -> ActionItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                            ItemType.NORMAL -> NormalItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Composable
-fun MLBScreen(navController: NavHostController) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-    val listState = rememberScalingLazyListState()
-    val teams = remember { SportsDataProvider.getMLBTeams() }
-
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
-        onDismissed = { navController.popBackStack() }
-    ) { isBackground ->
-        if (!isBackground) {
-            Scaffold(
-                timeText = { TimeText() },
-                positionIndicator = { PositionIndicator(scalingLazyListState = listState) }
-            ) {
-                ScalingLazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    state = listState
-                ) {
-                    itemsIndexed(teams) { index, team ->
-                        when (team.type) {
-                            ItemType.HEADER -> HeaderItem(item = team)
-                            ItemType.ACTION -> ActionItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                            ItemType.NORMAL -> NormalItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Composable
-fun NFLScreen(navController: NavHostController) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-    val listState = rememberScalingLazyListState()
-    val teams = remember { SportsDataProvider.getNFLTeams() }
-
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
-        onDismissed = { navController.popBackStack() }
-    ) { isBackground ->
-        if (!isBackground) {
-            Scaffold(
-                timeText = { TimeText() },
-                positionIndicator = { PositionIndicator(scalingLazyListState = listState) }
-            ) {
-                ScalingLazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    state = listState
-                ) {
-                    itemsIndexed(teams) { index, team ->
-                        when (team.type) {
-                            ItemType.HEADER -> HeaderItem(item = team)
-                            ItemType.ACTION -> ActionItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                            ItemType.NORMAL -> NormalItem(
-                                item = team,
-                                onClick = { navController.navigate(team.route) }
-                            )
-                        }
                     }
                 }
             }
@@ -459,14 +249,7 @@ fun TeamDetailScreen(
         state = swipeToDismissBoxState,
         onDismissed = { navController.popBackStack() }
     ) { isBackground ->
-        if (isBackground) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("Desliza para volver", color = MaterialTheme.colors.onBackground)
-            }
-        } else {
+        if (!isBackground) {
             Scaffold(
                 timeText = { TimeText() }
             ) {
@@ -487,21 +270,15 @@ fun TeamDetailScreen(
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    Text(
-                        text = teamDetails["league"] ?: "Liga",
-                        style = MaterialTheme.typography.caption1,
-                        color = MaterialTheme.colors.onBackground.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center
-                    )
-
                     Card(
+                        onClick = { },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
                             modifier = Modifier.padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            DetailRow("🏟️ Estadio", teamDetails["stadium"] ?: "N/A")
+                            DetailRow("🏟️ Estadio", teamDetails["stadium"] ?: teamDetails["arena"] ?: "N/A")
                             DetailRow("👥 Capacidad", teamDetails["capacity"] ?: "N/A")
                             DetailRow("📅 Fundado", teamDetails["founded"] ?: "N/A")
                             DetailRow("👤 Entrenador", teamDetails["coach"] ?: teamDetails["manager"] ?: "N/A")
@@ -512,10 +289,189 @@ fun TeamDetailScreen(
 
                     Button(
                         onClick = { navController.popBackStack() },
-                        modifier = Modifier.padding(top = 8.dp),
                         colors = ButtonDefaults.primaryButtonColors()
                     ) {
                         Text("Volver")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalWearFoundationApi::class)
+@Composable
+fun NewsScreen(navController: NavHostController) {
+    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
+    val listState = rememberScalingLazyListState()
+
+    val news = listOf(
+        "Real Madrid gana la Champions",
+        "Lakers en playoffs de NBA",
+        "Yankees firman nuevo jugador",
+        "Chiefs ganan Super Bowl",
+        "Barcelona fichaje sorpresa cr7!"
+    )
+
+    SwipeToDismissBox(
+        state = swipeToDismissBoxState,
+        onDismissed = { navController.popBackStack() }
+    ) { isBackground ->
+        if (!isBackground) {
+            Scaffold(
+                timeText = { TimeText() },
+                positionIndicator = { PositionIndicator(scalingLazyListState = listState) }
+            ) {
+                ScalingLazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    state = listState
+                ) {
+                    item {
+                        Text(
+                            text = "📰 Noticias",
+                            style = MaterialTheme.typography.title2,
+                            color = MaterialTheme.colors.primary,
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+                    }
+
+                    itemsIndexed(news) { index, newsItem ->
+                        Card(
+                            onClick = {
+                                navController.navigate("detail/news_${index}/${newsItem}")
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = newsItem,
+                                    style = MaterialTheme.typography.body1,
+                                    color = MaterialTheme.colors.onSurface
+                                )
+                                Text(
+                                    text = "Hace ${index + 1}h",
+                                    style = MaterialTheme.typography.caption1,
+                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalWearFoundationApi::class)
+@Composable
+fun SimpleScreen(navController: NavHostController, title: String, content: String) {
+    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
+
+    SwipeToDismissBox(
+        state = swipeToDismissBoxState,
+        onDismissed = { navController.popBackStack() }
+    ) { isBackground ->
+        if (!isBackground) {
+            Scaffold(
+                timeText = { TimeText() }
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.title2,
+                        color = MaterialTheme.colors.primary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    Text(
+                        text = content,
+                        style = MaterialTheme.typography.body1,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colors.onBackground.copy(alpha = 0.7f)
+                    )
+
+                    Button(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Text("Volver")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Componentes reutilizables
+@Composable
+fun ListItemComponent(item: ListItem, onClick: () -> Unit = {}) {
+    when (item.type) {
+        ItemType.HEADER -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.title2,
+                    color = MaterialTheme.colors.primary,
+                    textAlign = TextAlign.Center,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        ItemType.ACTION -> {
+            Chip(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = onClick,
+                label = {
+                    Text(
+                        text = item.title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
+                colors = ChipDefaults.secondaryChipColors()
+            )
+        }
+        ItemType.NORMAL -> {
+            Card(
+                onClick = onClick,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.title3,
+                        color = MaterialTheme.colors.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (item.subtitle.isNotEmpty()) {
+                        Text(
+                            text = item.subtitle,
+                            style = MaterialTheme.typography.caption1,
+                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
                     }
                 }
             }
@@ -544,297 +500,6 @@ fun DetailRow(label: String, value: String) {
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Composable
-fun FavoritesScreen(navController: NavHostController) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
-        onDismissed = { navController.popBackStack() }
-    ) { isBackground ->
-        if (!isBackground) {
-            Scaffold(
-                timeText = { TimeText() }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "⭐ Favoritos",
-                        style = MaterialTheme.typography.title2,
-                        color = MaterialTheme.colors.primary,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "Aquí aparecerán tus equipos favoritos",
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colors.onBackground.copy(alpha = 0.7f)
-                    )
-
-                    Button(
-                        onClick = { navController.popBackStack() },
-                        modifier = Modifier.padding(top = 16.dp)
-                    ) {
-                        Text("Volver")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Composable
-fun SportsNewsScreen(navController: NavHostController) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-    val listState = rememberScalingLazyListState()
-
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
-        onDismissed = { navController.popBackStack() }
-    ) { isBackground ->
-        if (!isBackground) {
-            Scaffold(
-                timeText = { TimeText() },
-                positionIndicator = { PositionIndicator(scalingLazyListState = listState) }
-            ) {
-                ScalingLazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    state = listState
-                ) {
-                    item {
-                        Text(
-                            text = "📰 Noticias",
-                            style = MaterialTheme.typography.title2,
-                            color = MaterialTheme.colors.primary,
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        )
-                    }
-
-                    items(5) { index ->
-                        val news = listOf(
-                            "Real Madrid gana la Champions",
-                            "Lakers en playoffs de NBA",
-                            "Yankees firman nuevo jugador",
-                            "Chiefs ganan Super Bowl",
-                            "Barcelona fichaje sorpresa"
-                        )
-
-                        Card(
-                            onClick = {
-                                navController.navigate("detail/news_${index}/${news[index]}")
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp)
-                            ) {
-                                Text(
-                                    text = news[index],
-                                    style = MaterialTheme.typography.body1,
-                                    color = MaterialTheme.colors.onSurface
-                                )
-                                Text(
-                                    text = "Hace ${index + 1}h",
-                                    style = MaterialTheme.typography.caption1,
-                                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Composable
-fun SettingsScreen(navController: NavHostController) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
-        onDismissed = { navController.popBackStack() }
-    ) { isBackground ->
-        if (!isBackground) {
-            Scaffold(
-                timeText = { TimeText() }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "⚙️ Configuración",
-                        style = MaterialTheme.typography.title2,
-                        color = MaterialTheme.colors.primary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "Notificaciones deportivas",
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Text(
-                        text = "Equipos favoritos",
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Button(
-                        onClick = { navController.popBackStack() },
-                        modifier = Modifier.padding(top = 16.dp)
-                    ) {
-                        Text("Volver")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalWearFoundationApi::class)
-@Composable
-fun AboutScreen(navController: NavHostController) {
-    val swipeToDismissBoxState = rememberSwipeToDismissBoxState()
-
-    SwipeToDismissBox(
-        state = swipeToDismissBoxState,
-        onDismissed = { navController.popBackStack() }
-    ) { isBackground ->
-        if (!isBackground) {
-            Scaffold(
-                timeText = { TimeText() }
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "🏆 Sports Hub",
-                        style = MaterialTheme.typography.title2,
-                        color = MaterialTheme.colors.primary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-
-                    Text(
-                        text = "v1.0 para Wear OS",
-                        style = MaterialTheme.typography.body1,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Text(
-                        text = "Tu hub deportivo definitivo",
-                        style = MaterialTheme.typography.caption1,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-
-                    Button(
-                        onClick = { navController.popBackStack() },
-                        modifier = Modifier.padding(top = 16.dp)
-                    ) {
-                        Text("Volver")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun HeaderItem(item: ListItem) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = item.title,
-            style = MaterialTheme.typography.title2,
-            color = MaterialTheme.colors.primary,
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-fun ActionItem(
-    item: ListItem,
-    onClick: () -> Unit
-) {
-    Chip(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick,
-        label = {
-            Text(
-                text = item.title,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        colors = ChipDefaults.secondaryChipColors()
-    )
-}
-
-@Composable
-fun NormalItem(
-    item: ListItem,
-    onClick: () -> Unit
-) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.title3,
-                color = MaterialTheme.colors.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (item.subtitle.isNotEmpty()) {
-                Text(
-                    text = item.subtitle,
-                    style = MaterialTheme.typography.caption1,
-                    color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-        }
     }
 }
 

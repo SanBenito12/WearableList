@@ -1,4 +1,4 @@
-package com.example.wearablelist.data
+package com.example.wearablelist.presentation.data
 
 import com.example.wearablelist.presentation.ItemType
 import com.example.wearablelist.presentation.ListItem
