@@ -14,7 +14,6 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
     }
 
     buildTypes {
@@ -39,19 +38,31 @@ android {
 }
 
 dependencies {
-
+    // Wear OS core dependencies
     implementation(libs.play.services.wearable)
+    implementation(libs.core.splashscreen)
+
+    // Compose BOM - Ensures compatible versions
     implementation(platform(libs.compose.bom))
+
+    // Compose UI
     implementation(libs.ui)
     implementation(libs.ui.graphics)
     implementation(libs.ui.tooling.preview)
+    implementation(libs.activity.compose)
+
+    // Wear Compose - Material Design for Wear OS
     implementation(libs.compose.material)
     implementation(libs.compose.foundation)
+
+    // Wear specific tooling
     implementation(libs.wear.tooling.preview)
-    implementation(libs.activity.compose)
-    implementation(libs.core.splashscreen)
+
+    // Testing dependencies
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.ui.test.junit4)
+
+    // Debug dependencies
     debugImplementation(libs.ui.tooling)
     debugImplementation(libs.ui.test.manifest)
 }
