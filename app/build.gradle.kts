@@ -55,6 +55,9 @@ dependencies {
     implementation(libs.compose.material)
     implementation(libs.compose.foundation)
 
+    // Navigation Compose
+    implementation(libs.navigation.compose)
+
     // Wear specific tooling
     implementation(libs.wear.tooling.preview)
 
